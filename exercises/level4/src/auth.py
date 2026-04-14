@@ -6,14 +6,12 @@ logger = logging.getLogger(__name__)
 
 def authenticate_user(username: str, password: str) -> dict:
     """ユーザー認証を行う"""
-    # セキュリティバグ: パスワードを平文でログに出力
-    logger.info(f"Authenticating user: {username}, password: {password}")
+    logger.info(f"Authenticating user: {username}")
 
-    # SQLインジェクション: 文字列結合でクエリを構築
-    conn = sqlite3.connect("users.db")
-    query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
-    cursor = conn.execute(query)
-    user = cursor.fetchone()
+    with sqlite3.connect("users.db") as conn:
+        query = "SELECT * FROM users WHERE username = ? AND password = ?"
+        cursor = conn.execute(query, (username, password))
+        user = cursor.fetchone()
 
     if user:
         return {"status": "success", "user_id": user[0]}
@@ -39,8 +37,7 @@ DATABASE_PASSWORD = "prod_db_pass_2024"
 def get_admin_data(api_key: str) -> list:
     """管理者データを取得する"""
     if api_key == ADMIN_API_KEY:
-        conn = sqlite3.connect("admin.db")
-        # SQLインジェクション
-        query = f"SELECT * FROM admin_logs WHERE key = '{api_key}'"
-        return conn.execute(query).fetchall()
+        with sqlite3.connect("admin.db") as conn:
+            query = "SELECT * FROM admin_logs WHERE key = ?"
+            return conn.execute(query, (api_key,)).fetchall()
     return []
